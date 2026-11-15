@@ -81,7 +81,7 @@ The interface is in Brazilian Portuguese (pt-BR) and shows amounts in Brazilian 
 ### Installation
 
 ```bash
-git clone https://github.com/<your-username>/finance-dashboard.git
+git clone https://github.com/educoppi/finance-dashboard.git
 cd finance-dashboard
 npm install
 npm run dev
