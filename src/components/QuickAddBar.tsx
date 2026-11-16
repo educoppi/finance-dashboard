@@ -88,7 +88,7 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
   return (
     <section aria-label="Quick entry" className="card p-3 sm:p-4">
       <form onSubmit={handleSubmit} noValidate className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
-        <div className="col-span-2 md:col-span-3 lg:col-span-2">
+        <div className="col-span-2 md:col-span-4 lg:col-span-3">
           <span className="label">Type</span>
           <TypeToggle value={type} onChange={setType} />
         </div>
@@ -111,7 +111,7 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
           />
         </div>
 
-        <div className="col-span-1 md:col-span-6 lg:col-span-3">
+        <div className="col-span-1 md:col-span-5 lg:col-span-2">
           <label htmlFor="qa-description" className="label">
             Description
           </label>

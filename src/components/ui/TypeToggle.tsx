@@ -14,7 +14,7 @@ export function TypeToggle({ value, onChange }: TypeToggleProps) {
         role="radio"
         aria-checked={value === 'EXPENSE'}
         onClick={() => onChange('EXPENSE')}
-        className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium transition ${
+        className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium transition ${
           value === 'EXPENSE' ? 'bg-rose-500/15 text-rose-300 ring-1 ring-rose-500/40' : 'text-slate-400 hover:text-slate-200'
         }`}
       >
@@ -26,7 +26,7 @@ export function TypeToggle({ value, onChange }: TypeToggleProps) {
         role="radio"
         aria-checked={value === 'INCOME'}
         onClick={() => onChange('INCOME')}
-        className={`flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 text-sm font-medium transition ${
+        className={`flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-2 text-sm font-medium transition ${
           value === 'INCOME'
             ? 'bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-500/40'
             : 'text-slate-400 hover:text-slate-200'
