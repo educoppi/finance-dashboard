@@ -3,17 +3,17 @@ import { IntegrityError, NotFoundError, ValidationError } from './errors';
 import { STORAGE_KEYS, generateId, readCollection, resolveAsync, writeCollection } from './storage';
 import { transactionService } from './transactionService';
 
-/** Contrato REST futuro: /api/v1/categories */
+/** Future REST contract: /api/v1/categories */
 
 const DEFAULT_CATEGORIES: CategoryInput[] = [
-  { name: 'Alimentação', color: '#f97316', type: 'EXPENSE' },
-  { name: 'Transporte', color: '#3b82f6', type: 'EXPENSE' },
-  { name: 'Moradia e Contas', color: '#8b5cf6', type: 'EXPENSE' },
-  { name: 'Lazer', color: '#ec4899', type: 'EXPENSE' },
-  { name: 'Saúde e Treino', color: '#14b8a6', type: 'EXPENSE' },
-  { name: 'Outros', color: '#64748b', type: 'EXPENSE' },
-  { name: 'Salário', color: '#10b981', type: 'INCOME' },
-  { name: 'Renda Extra', color: '#22c55e', type: 'INCOME' },
+  { name: 'Food', color: '#f97316', type: 'EXPENSE' },
+  { name: 'Transportation', color: '#3b82f6', type: 'EXPENSE' },
+  { name: 'Housing & Bills', color: '#8b5cf6', type: 'EXPENSE' },
+  { name: 'Leisure', color: '#ec4899', type: 'EXPENSE' },
+  { name: 'Health & Fitness', color: '#14b8a6', type: 'EXPENSE' },
+  { name: 'Other', color: '#64748b', type: 'EXPENSE' },
+  { name: 'Salary', color: '#10b981', type: 'INCOME' },
+  { name: 'Side Income', color: '#22c55e', type: 'INCOME' },
 ];
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -21,7 +21,7 @@ const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 function load(): Category[] {
   const stored = readCollection<Category>(STORAGE_KEYS.categories);
   if (stored !== null) return stored;
-  // Seed no primeiro acesso (equivalente a uma migration Flyway com dados iniciais).
+  // Seed on first access (equivalent to a Flyway migration with initial data).
   const seeded = DEFAULT_CATEGORIES.map((c) => ({ ...c, id: generateId() }));
   writeCollection(STORAGE_KEYS.categories, seeded);
   return seeded;
@@ -29,13 +29,13 @@ function load(): Category[] {
 
 function validate(input: CategoryInput, all: Category[], ignoreId?: string): CategoryInput {
   const name = input.name.trim();
-  if (!name) throw new ValidationError('Informe o nome da categoria.');
-  if (name.length > 40) throw new ValidationError('O nome deve ter no máximo 40 caracteres.');
-  if (!HEX_RE.test(input.color)) throw new ValidationError('Cor inválida. Use o formato #RRGGBB.');
+  if (!name) throw new ValidationError('Enter a category name.');
+  if (name.length > 40) throw new ValidationError('The name must be at most 40 characters.');
+  if (!HEX_RE.test(input.color)) throw new ValidationError('Invalid color. Use the #RRGGBB format.');
   const duplicate = all.some(
-    (c) => c.id !== ignoreId && c.name.trim().toLocaleLowerCase('pt-BR') === name.toLocaleLowerCase('pt-BR'),
+    (c) => c.id !== ignoreId && c.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase(),
   );
-  if (duplicate) throw new ValidationError('Já existe uma categoria com esse nome.');
+  if (duplicate) throw new ValidationError('A category with this name already exists.');
   return { name, color: input.color.toLowerCase(), type: input.type };
 }
 
@@ -59,18 +59,18 @@ export const categoryService = {
   async update(id: string, input: CategoryInput): Promise<Category> {
     const all = load();
     const current = all.find((c) => c.id === id);
-    if (!current) throw new NotFoundError('Categoria não encontrada.');
+    if (!current) throw new NotFoundError('Category not found.');
     const data = validate(input, all, id);
 
-    // Integridade: não permitir mudar o tipo se isso deixar transações incompatíveis.
+    // Integrity: do not allow a type change that would leave transactions incompatible.
     if (data.type !== 'BOTH' && data.type !== current.type) {
       const linked = await transactionService.countByCategory(id);
       const incompatible = linked.byType[data.type === 'EXPENSE' ? 'INCOME' : 'EXPENSE'];
       if (incompatible > 0) {
         throw new IntegrityError(
-          `Não é possível mudar o tipo: ${incompatible} lançamento(s) de ${
-            data.type === 'EXPENSE' ? 'receita' : 'gasto'
-          } usam esta categoria.`,
+          `Cannot change the type: ${incompatible} ${
+            data.type === 'EXPENSE' ? 'income' : 'expense'
+          } transaction(s) use this category.`,
         );
       }
     }
@@ -83,15 +83,15 @@ export const categoryService = {
     return updated;
   },
 
-  /** DELETE /api/v1/categories/{id} — 409 se houver transações vinculadas. */
+  /** DELETE /api/v1/categories/{id} — 409 if transactions are linked to it. */
   async remove(id: string): Promise<void> {
     const all = load();
-    if (!all.some((c) => c.id === id)) throw new NotFoundError('Categoria não encontrada.');
+    if (!all.some((c) => c.id === id)) throw new NotFoundError('Category not found.');
     const { total } = await transactionService.countByCategory(id);
     if (total > 0) {
       throw new IntegrityError(
-        `Esta categoria possui ${total} lançamento(s) vinculado(s) e não pode ser excluída. ` +
-          'Reatribua ou exclua esses lançamentos primeiro.',
+        `This category has ${total} linked transaction(s) and cannot be deleted. ` +
+          'Reassign or delete those transactions first.',
       );
     }
     writeCollection(

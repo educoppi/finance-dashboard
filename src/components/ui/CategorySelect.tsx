@@ -8,16 +8,16 @@ interface CategorySelectProps {
   value: string;
   onChange: (id: string) => void;
   placeholder?: string;
-  /** Item extra no topo (ex: "Todas as categorias" nos filtros). */
+  /** Extra item at the top (e.g. "All categories" in the filters). */
   allOption?: { value: string; label: string };
   className?: string;
   id?: string;
   'aria-label'?: string;
 }
 
-/** Select customizado (listbox acessível) com bolinha de cor da categoria. */
+/** Custom select (accessible listbox) showing each category's color dot. */
 export const CategorySelect = forwardRef<HTMLButtonElement, CategorySelectProps>(function CategorySelect(
-  { categories, value, onChange, placeholder = 'Selecione', allOption, className = '', id, ...aria },
+  { categories, value, onChange, placeholder = 'Select', allOption, className = '', id, ...aria },
   ref,
 ) {
   const [open, setOpen] = useState(false);
@@ -59,7 +59,7 @@ export const CategorySelect = forwardRef<HTMLButtonElement, CategorySelectProps>
         e.preventDefault();
         openList();
       }
-      // Enter fechado: deixa propagar para submeter o formulário.
+      // Enter while closed: let it bubble up to submit the form.
       return;
     }
     switch (e.key) {
@@ -119,7 +119,7 @@ export const CategorySelect = forwardRef<HTMLButtonElement, CategorySelectProps>
           role="listbox"
           className="fade-in absolute z-30 mt-1 max-h-64 w-full min-w-48 overflow-auto rounded-lg border border-slate-700 bg-slate-900 p-1 shadow-xl shadow-black/50"
         >
-          {options.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">Nenhuma categoria</li>}
+          {options.length === 0 && <li className="px-3 py-2 text-sm text-slate-500">No categories</li>}
           {options.map((o, i) => (
             <li
               key={o.value}

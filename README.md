@@ -6,13 +6,14 @@ Log income and expenses in seconds, set a monthly savings goal, and see your spe
 > **Phase 1 (MVP):** frontend only, persisted in the browser's `localStorage`.
 > **Phase 2 (planned):** the storage layer will be swapped for a **Java (Spring Boot) + MySQL** REST API. The codebase is *migration-ready*, so the UI won't need to change.
 
-The interface is in Brazilian Portuguese (pt-BR) and shows amounts in Brazilian Real (`R$`).
+The interface is in **English** and supports **10 currencies** (USD, BRL, EUR, GBP, JPY, CAD, AUD, CHF, ARS, MXN). Each currency is displayed using its own native formatting conventions.
 
 ---
 
 ## Table of Contents
 
 - [Features](#features)
+- [Multi-currency support](#multi-currency-support)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Available Scripts](#available-scripts)
@@ -29,9 +30,9 @@ The interface is in Brazilian Portuguese (pt-BR) and shows amounts in Brazilian 
 
 ### Quick entry bar
 - Toggle between **Expense** and **Income**. The category list filters itself to matching categories.
-- Brazilian currency mask (typing `1234` becomes `12,34`) and validation (amount must be > 0).
+- Currency-aware input mask (in USD, typing `1234` becomes `12.34`; in JPY it becomes `1,234`) and validation (amount must be > 0).
 - The date defaults to **today in the local timezone**. If you pick another date, it stays until you change it again.
-- Press **Enter** or click **Adicionar** to save. The amount and description fields clear and focus returns to the amount field, so you can log several entries in a row.
+- Press **Enter** or click **Add** to save. The amount and description fields clear and focus returns to the amount field, so you can log several entries in a row.
 
 ### Monthly summary
 - Cards for **Income**, **Expenses** and **Balance** for the selected month.
@@ -52,10 +53,35 @@ The interface is in Brazilian Portuguese (pt-BR) and shows amounts in Brazilian 
 
 ### History and filters
 - Combinable filters: text search (ignores accents and case), type, and category.
-- A **"Limpar filtros"** (clear filters) button appears whenever a filter is active.
-- Sorted newest first. Each row shows the date (`DD/MM/YYYY`), a colored category badge, the description, the signed amount, and **edit/delete** actions.
+- A **Clear filters** button appears whenever a filter is active.
+- Sorted newest first. Each row shows the date (e.g. `Nov 15, 2026`), a colored category badge, the description, the signed amount, and **edit/delete** actions.
 - Friendly empty states for months with no transactions and for filters with no results.
 - Table layout on desktop, card list on mobile.
+
+---
+
+## Multi-currency support
+
+Pick your currency from the selector in the header. The choice is saved and applied everywhere: cards, charts, tooltips, history and input masks.
+
+| Code | Currency | Example |
+|---|---|---|
+| USD | US Dollar *(default)* | `$1,234.56` |
+| BRL | Brazilian Real | `R$ 1.234,56` |
+| EUR | Euro | `1.234,56 €` |
+| GBP | British Pound | `£1,234.56` |
+| JPY | Japanese Yen | `￥1,235` (no decimals) |
+| CAD | Canadian Dollar | `$1,234.56` |
+| AUD | Australian Dollar | `$1,234.56` |
+| CHF | Swiss Franc | `CHF 1’234.56` |
+| ARS | Argentine Peso | `$ 1.234,56` |
+| MXN | Mexican Peso | `$1,234.56` |
+
+How it works:
+- **One currency per user.** It is a display and input setting, not a per-transaction field. Switching currency **does not convert** existing amounts; they are shown as they are, in the new currency.
+- **Native formatting:** amounts use the currency's own locale (symbol position, thousands and decimal separators). Compact chart labels stay in English (`R$1.2K`).
+- **Backward compatible:** browsers that already had data from before this setting existed are switched to BRL automatically, since that was the only currency at the time.
+- **Adding a currency** takes one line in [`src/utils/currency.ts`](src/utils/currency.ts): ISO code, name, locale and number of decimals.
 
 ---
 
@@ -116,18 +142,21 @@ src/
 │   ├── transactionService.ts # /api/v1/transactions
 │   ├── categoryService.ts    # /api/v1/categories (+ seed data)
 │   ├── goalService.ts        # /api/v1/goals
+│   ├── settingsService.ts    # /api/v1/settings (selected currency)
 │   └── index.ts
 ├── hooks/
 │   ├── useFinanceData.ts     # Coordinates the services and exposes state + CRUD to the UI
+│   ├── useCurrency.tsx       # Active currency + formatters (React context)
 │   └── useToast.tsx          # Toast notifications
 ├── utils/
 │   ├── date.ts               # Timezone-safe date helpers (getLocalTodayISO, month keys…)
-│   ├── money.ts              # Cent-precise arithmetic, BRL formatting, currency mask
+│   ├── currency.ts           # Supported currencies (code, name, locale, decimals)
+│   ├── money.ts              # Cent-precise arithmetic, currency formatting and input mask
 │   └── finance.ts            # Pure business rules: summary, goal status, chart series
 ├── components/
 │   ├── ui/                   # Modal, CategorySelect, CurrencyInput, TypeToggle, ConfirmDialog
 │   ├── charts/               # CategoryDonut, SpendingPaceChart, MonthlyBalanceChart
-│   ├── Header.tsx            # Branding, month selector, categories button
+│   ├── Header.tsx            # Branding, month selector, currency picker, categories button
 │   ├── QuickAddBar.tsx
 │   ├── SummaryCards.tsx
 │   ├── GoalCard.tsx
@@ -197,6 +226,7 @@ Planned relational schema:
 | `transactions` | `id CHAR(36) PK`, `type ENUM`, `amount DECIMAL(12,2)`, `description`, `category_id FK`, `date DATE`, `created_at DATETIME` |
 | `monthly_goals` | `month_key CHAR(7) PK`, `target_amount DECIMAL(12,2)` |
 | `default_goals` | `effective_from CHAR(7) PK`, `target_amount DECIMAL(12,2)` |
+| `user_settings` | `user_id PK`, `currency CHAR(3)` |
 
 ---
 
@@ -248,6 +278,8 @@ Every service method already documents the REST endpoint it will call:
 | `categoryService.remove(id)` | `DELETE /api/v1/categories/{id}` (409 if in use) |
 | `goalService.getByMonth(monthKey)` | `GET /api/v1/goals/{monthKey}` |
 | `goalService.save(monthKey, amount, applyToFuture)` | `PUT /api/v1/goals/{monthKey}` |
+| `settingsService.get()` | `GET /api/v1/settings` |
+| `settingsService.update(patch)` | `PATCH /api/v1/settings` |
 
 Migration steps:
 1. Implement the endpoints above in Spring Boot (JPA entities mirror `src/types/finance.ts`).
@@ -260,8 +292,10 @@ Migration steps:
 ## Roadmap
 
 - [x] **Phase 1:** frontend MVP with `localStorage`
+- [x] English UI and multi-currency display
 - [ ] **Phase 2:** Spring Boot + MySQL REST API
 - [ ] Authentication and multiple users
 - [ ] Recurring expenses, subscriptions and installment purchases *(intentionally out of scope for Phase 1)*
 - [ ] CSV / spreadsheet import and export
+- [ ] Per-transaction currencies with exchange-rate conversion
 - [ ] Unit tests for `utils/finance.ts` and the services

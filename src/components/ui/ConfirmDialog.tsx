@@ -12,7 +12,7 @@ interface ConfirmDialogProps {
   onClose: () => void;
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel = 'Excluir', onConfirm, onClose }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel = 'Delete', onConfirm, onClose }: ConfirmDialogProps) {
   const [busy, setBusy] = useState(false);
   const run = async () => {
     setBusy(true);
@@ -27,7 +27,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel = 'Excluir', 
       <div className="text-sm text-slate-300">{message}</div>
       <div className="mt-5 flex justify-end gap-2">
         <button type="button" onClick={onClose} className="btn-ghost">
-          Cancelar
+          Cancel
         </button>
         <button
           type="button"

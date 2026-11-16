@@ -31,7 +31,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
     document.addEventListener('keydown', onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    // Foca o primeiro campo do modal
+    // Focus the first field in the modal
     const t = window.setTimeout(() => {
       const el = panelRef.current?.querySelector<HTMLElement>('[data-autofocus], input, select, textarea, button');
       el?.focus();
@@ -61,7 +61,7 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             <h2 className="text-base font-semibold text-slate-100">{title}</h2>
             {description && <p className="mt-0.5 text-sm text-slate-400">{description}</p>}
           </div>
-          <button type="button" onClick={onClose} className="icon-btn -mr-1" aria-label="Fechar">
+          <button type="button" onClick={onClose} className="icon-btn -mr-1" aria-label="Close">
             <X className="size-4" />
           </button>
         </div>

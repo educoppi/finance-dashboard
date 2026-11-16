@@ -28,7 +28,7 @@ export function ChartEmpty({ icon, message }: { icon: ReactNode; message: string
   );
 }
 
-/** Contêiner padrão do tooltip em dark mode. */
+/** Default dark-mode tooltip container. */
 export function TooltipBox({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-lg border border-slate-700 bg-slate-950/95 px-3 py-2 text-xs shadow-xl shadow-black/50 backdrop-blur">

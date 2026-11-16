@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { PieChart as PieIcon } from 'lucide-react';
 import type { CategorySlice } from '../../utils/finance';
-import { formatBRL } from '../../utils/money';
+import { useCurrency } from '../../hooks/useCurrency';
 import { ChartCard, ChartEmpty, TooltipBox } from './ChartCard';
 
-const pct = (v: number) => `${(v * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
+const pct = (v: number) => `${(v * 100).toLocaleString('en-US', { maximumFractionDigits: 1 })}%`;
 
 interface DonutTooltipProps {
   active?: boolean;
@@ -13,6 +13,7 @@ interface DonutTooltipProps {
 }
 
 function DonutTooltip({ active, payload }: DonutTooltipProps) {
+  const { format } = useCurrency();
   const slice = payload?.[0]?.payload;
   if (!active || !slice) return null;
   return (
@@ -21,20 +22,21 @@ function DonutTooltip({ active, payload }: DonutTooltipProps) {
         <span className="size-2.5 rounded-full" style={{ backgroundColor: slice.color }} />
         {slice.name}
       </div>
-      <div className="money mt-1 text-sm text-slate-50">{formatBRL(slice.value)}</div>
-      <div className="text-slate-400">{pct(slice.percent)} do total</div>
+      <div className="money mt-1 text-sm text-slate-50">{format(slice.value)}</div>
+      <div className="text-slate-400">{pct(slice.percent)} of total</div>
     </TooltipBox>
   );
 }
 
 export function CategoryDonut({ data, total }: { data: CategorySlice[]; total: number }) {
+  const { format } = useCurrency();
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const active = activeIdx !== null ? data[activeIdx] : undefined;
 
   return (
-    <ChartCard title="Gastos por categoria" subtitle="Distribuição dos gastos do mês">
+    <ChartCard title="Spending by category" subtitle="How this month's expenses are split">
       {data.length === 0 ? (
-        <ChartEmpty icon={<PieIcon className="size-5" />} message="Nenhum gasto lançado neste mês ainda." />
+        <ChartEmpty icon={<PieIcon className="size-5" />} message="No expenses logged this month yet." />
       ) : (
         <div className="flex flex-col gap-4">
           <div className="relative h-52">
@@ -67,8 +69,8 @@ export function CategoryDonut({ data, total }: { data: CategorySlice[]; total: n
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="max-w-[45%] truncate text-[11px] text-slate-500">{active ? active.name : 'Total'}</span>
-              <span className="money text-base font-semibold text-slate-50">
-                {formatBRL(active ? active.value : total)}
+              <span className="money max-w-[55%] truncate text-base font-semibold text-slate-50">
+                {format(active ? active.value : total)}
               </span>
               {active && <span className="text-[11px] text-slate-400">{pct(active.percent)}</span>}
             </div>
@@ -86,9 +88,7 @@ export function CategoryDonut({ data, total }: { data: CategorySlice[]; total: n
                 <span className="money text-slate-400">{pct(s.percent)}</span>
               </li>
             ))}
-            {data.length > 6 && (
-              <li className="px-1.5 py-1 text-slate-500">+{data.length - 6} outras categorias</li>
-            )}
+            {data.length > 6 && <li className="px-1.5 py-1 text-slate-500">+{data.length - 6} more categories</li>}
           </ul>
         </div>
       )}

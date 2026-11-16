@@ -8,7 +8,7 @@ interface TypeToggleProps {
 
 export function TypeToggle({ value, onChange }: TypeToggleProps) {
   return (
-    <div role="radiogroup" aria-label="Tipo de lançamento" className="flex h-10 rounded-lg border border-slate-800 bg-slate-950/60 p-1">
+    <div role="radiogroup" aria-label="Transaction type" className="flex h-10 rounded-lg border border-slate-800 bg-slate-950/60 p-1">
       <button
         type="button"
         role="radio"
@@ -19,7 +19,7 @@ export function TypeToggle({ value, onChange }: TypeToggleProps) {
         }`}
       >
         <ArrowDownRight className="size-4" />
-        Gasto
+        Expense
       </button>
       <button
         type="button"
@@ -33,7 +33,7 @@ export function TypeToggle({ value, onChange }: TypeToggleProps) {
         }`}
       >
         <ArrowUpRight className="size-4" />
-        Receita
+        Income
       </button>
     </div>
   );

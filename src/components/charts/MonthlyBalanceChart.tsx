@@ -1,7 +1,7 @@
 import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { BarChart3 } from 'lucide-react';
 import type { MonthSummary } from '../../types/finance';
-import { formatBRL, formatBRLCompact } from '../../utils/money';
+import { useCurrency } from '../../hooks/useCurrency';
 import { AXIS_TICK, ChartCard, ChartEmpty, GRID_STROKE, TooltipBox } from './ChartCard';
 
 interface BarDatum {
@@ -17,6 +17,7 @@ interface BalanceTooltipProps {
 }
 
 function BalanceTooltip({ active, payload, income }: BalanceTooltipProps) {
+  const { format } = useCurrency();
   const d = payload?.[0]?.payload;
   if (!active || !d) return null;
   return (
@@ -25,10 +26,10 @@ function BalanceTooltip({ active, payload, income }: BalanceTooltipProps) {
         <span className="size-2.5 rounded-sm" style={{ backgroundColor: d.color }} />
         {d.name}
       </div>
-      <div className="money mt-1 text-sm text-slate-50">{formatBRL(d.value)}</div>
-      {income > 0 && d.name !== 'Receitas' && (
+      <div className="money mt-1 text-sm text-slate-50">{format(d.value)}</div>
+      {income > 0 && d.name !== 'Income' && (
         <div className="text-slate-400">
-          {((d.value / income) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% das receitas
+          {((d.value / income) * 100).toLocaleString('en-US', { maximumFractionDigits: 1 })}% of income
         </div>
       )}
     </TooltipBox>
@@ -36,17 +37,18 @@ function BalanceTooltip({ active, payload, income }: BalanceTooltipProps) {
 }
 
 export function MonthlyBalanceChart({ summary }: { summary: MonthSummary }) {
+  const { formatCompact } = useCurrency();
   const data: BarDatum[] = [
-    { name: 'Receitas', value: summary.income, color: '#34d399' },
-    { name: 'Gastos', value: summary.expense, color: '#fb7185' },
-    { name: 'Meta', value: summary.goal, color: '#818cf8' },
+    { name: 'Income', value: summary.income, color: '#34d399' },
+    { name: 'Expenses', value: summary.expense, color: '#fb7185' },
+    { name: 'Goal', value: summary.goal, color: '#818cf8' },
   ];
   const empty = data.every((d) => d.value === 0);
 
   return (
-    <ChartCard title="Balanço mensal" subtitle="Receitas, gastos e meta reservada">
+    <ChartCard title="Monthly balance" subtitle="Income, expenses and reserved goal">
       {empty ? (
-        <ChartEmpty icon={<BarChart3 className="size-5" />} message="Lance movimentações ou defina uma meta para comparar." />
+        <ChartEmpty icon={<BarChart3 className="size-5" />} message="Log transactions or set a goal to compare." />
       ) : (
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -58,7 +60,7 @@ export function MonthlyBalanceChart({ summary }: { summary: MonthSummary }) {
                 tickLine={false}
                 axisLine={false}
                 width={64}
-                tickFormatter={(v: number) => formatBRLCompact(v)}
+                tickFormatter={(v: number) => formatCompact(v)}
               />
               <Tooltip content={<BalanceTooltip income={summary.income} />} cursor={{ fill: 'rgb(148 163 184 / 0.06)' }} />
               <Bar dataKey="value" radius={[6, 6, 0, 0]} animationDuration={500} maxBarSize={64}>
@@ -68,7 +70,7 @@ export function MonthlyBalanceChart({ summary }: { summary: MonthSummary }) {
                 <LabelList
                   dataKey="value"
                   position="top"
-                  formatter={(v: unknown) => (typeof v === 'number' && v > 0 ? formatBRLCompact(v) : '')}
+                  formatter={(v: unknown) => (typeof v === 'number' && v > 0 ? formatCompact(v) : '')}
                   style={{ fill: '#cbd5e1', fontSize: 11, fontFamily: 'var(--font-mono)' }}
                 />
               </Bar>

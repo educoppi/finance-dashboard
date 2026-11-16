@@ -1,8 +1,8 @@
 import { Area, AreaChart, CartesianGrid, ReferenceDot, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { TrendingUp } from 'lucide-react';
 import type { DailyPoint } from '../../utils/finance';
-import { formatBRL, formatBRLCompact } from '../../utils/money';
-import { parseMonthKey } from '../../utils/date';
+import { formatDayLabel } from '../../utils/date';
+import { useCurrency } from '../../hooks/useCurrency';
 import { AXIS_TICK, ChartCard, ChartEmpty, GRID_STROKE, TooltipBox } from './ChartCard';
 
 interface PaceTooltipProps {
@@ -13,27 +13,27 @@ interface PaceTooltipProps {
 }
 
 function PaceTooltip({ active, payload, monthKey, cap }: PaceTooltipProps) {
+  const { format } = useCurrency();
   const p = payload?.[0]?.payload;
   if (!active || !p) return null;
-  const { month } = parseMonthKey(monthKey);
   return (
     <TooltipBox>
       <div className="font-medium text-slate-300">
-        Dia {String(p.day).padStart(2, '0')}/{String(month).padStart(2, '0')}
+        {formatDayLabel(monthKey, p.day)}
       </div>
       <div className="mt-1 flex justify-between gap-4">
-        <span className="text-slate-400">Acumulado</span>
-        <span className="money text-slate-50">{formatBRL(p.cumulative)}</span>
+        <span className="text-slate-400">Cumulative</span>
+        <span className="money text-slate-50">{format(p.cumulative)}</span>
       </div>
       <div className="flex justify-between gap-4">
-        <span className="text-slate-400">No dia</span>
-        <span className="money text-rose-300">{formatBRL(p.daily)}</span>
+        <span className="text-slate-400">That day</span>
+        <span className="money text-rose-300">{format(p.daily)}</span>
       </div>
       {cap !== null && (
         <div className="flex justify-between gap-4">
-          <span className="text-slate-400">{p.cumulative > cap ? 'Acima do teto' : 'Até o teto'}</span>
+          <span className="text-slate-400">{p.cumulative > cap ? 'Over the cap' : 'Left to cap'}</span>
           <span className={`money ${p.cumulative > cap ? 'text-rose-400' : 'text-emerald-300'}`}>
-            {formatBRL(Math.abs(cap - p.cumulative))}
+            {format(Math.abs(cap - p.cumulative))}
           </span>
         </div>
       )}
@@ -41,7 +41,7 @@ function PaceTooltip({ active, payload, monthKey, cap }: PaceTooltipProps) {
   );
 }
 
-/** Arredonda para cima até um valor "redondo" divisível em 4 faixas (ex: 6.480 -> 8.000). */
+/** Rounds up to a "nice" value that splits into 4 bands (e.g. 6,480 -> 8,000). */
 function niceCeil(v: number): number {
   if (v <= 0) return 100;
   const step = 10 ** Math.floor(Math.log10(v));
@@ -59,6 +59,7 @@ interface SpendingPaceChartProps {
 }
 
 export function SpendingPaceChart({ data, monthKey, spendingCap, hasIncome }: SpendingPaceChartProps) {
+  const { format, formatCompact } = useCurrency();
   const total = data[data.length - 1]?.cumulative ?? 0;
   const cap = hasIncome ? spendingCap : null;
   const crossing = cap !== null ? data.find((p) => p.cumulative > cap && p.daily > 0) : undefined;
@@ -68,20 +69,20 @@ export function SpendingPaceChart({ data, monthKey, spendingCap, hasIncome }: Sp
 
   return (
     <ChartCard
-      title="Ritmo de gastos acumulados"
+      title="Cumulative spending pace"
       subtitle={
         crossing ? (
-          <span className="text-rose-400">Teto de gastos cruzado no dia {crossing.day}</span>
+          <span className="text-rose-400">Spending cap crossed on day {crossing.day}</span>
         ) : cap !== null ? (
-          'Soma diária dos gastos vs. teto de gastos'
+          'Running total of expenses vs. spending cap'
         ) : (
-          'Lance receitas para exibir a linha do teto de gastos'
+          'Add income to show the spending cap line'
         )
       }
       className="lg:order-first lg:col-span-2 xl:order-none"
     >
       {total === 0 && cap === null ? (
-        <ChartEmpty icon={<TrendingUp className="size-5" />} message="Sem movimentações neste mês para traçar o ritmo." />
+        <ChartEmpty icon={<TrendingUp className="size-5" />} message="No activity this month to plot yet." />
       ) : (
         <div className="h-72">
           <ResponsiveContainer width="100%" height="100%">
@@ -109,7 +110,7 @@ export function SpendingPaceChart({ data, monthKey, spendingCap, hasIncome }: Sp
                 domain={[0, yMax]}
                 allowDecimals={false}
                 tickCount={5}
-                tickFormatter={(v: number) => formatBRLCompact(v)}
+                tickFormatter={(v: number) => formatCompact(v)}
               />
               <Tooltip
                 content={<PaceTooltip monthKey={monthKey} cap={cap} />}
@@ -123,7 +124,7 @@ export function SpendingPaceChart({ data, monthKey, spendingCap, hasIncome }: Sp
                   strokeWidth={1.5}
                   ifOverflow="extendDomain"
                   label={{
-                    value: `Teto ${formatBRL(cap)}`,
+                    value: `Cap ${format(cap)}`,
                     position: 'insideTopRight',
                     fill: '#fbbf24',
                     fontSize: 11,

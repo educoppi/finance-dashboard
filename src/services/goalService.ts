@@ -4,16 +4,16 @@ import { ValidationError } from './errors';
 import { STORAGE_KEYS, readCollection, resolveAsync, writeCollection } from './storage';
 
 /**
- * Contrato REST futuro: /api/v1/goals
+ * Future REST contract: /api/v1/goals
  *
- * Resolução da meta de um mês:
- *   1. Meta explícita do mês (tabela monthly_goals)            -> source "MONTH"
- *   2. Meta padrão vigente: a de maior effectiveFrom <= mês     -> source "DEFAULT"
- *      (tabela default_goals; "aplicar para os próximos meses")
- *   3. Nenhuma                                                  -> 0 / source "NONE"
+ * How a month's goal is resolved:
+ *   1. Explicit goal for the month (monthly_goals table)          -> source "MONTH"
+ *   2. Active default: the one with the latest effectiveFrom <= month -> source "DEFAULT"
+ *      (default_goals table; "apply to future months")
+ *   3. None                                                        -> 0 / source "NONE"
  *
- * A meta padrão só vale a partir do mês em que foi definida, para nunca
- * alterar retroativamente o histórico de meses anteriores.
+ * A default goal only applies from the month it was set onwards, so it never
+ * retroactively changes the history of previous months.
  */
 
 export interface DefaultGoal {
@@ -53,14 +53,14 @@ export const goalService = {
 
   /**
    * PUT /api/v1/goals/{monthKey}  body: { targetAmount, applyToFutureMonths }
-   * Com applyToFutureMonths, a meta vira padrão a partir deste mês e as metas
-   * explícitas de meses futuros são removidas para herdarem o novo padrão.
+   * With applyToFutureMonths, the goal becomes the default from this month on and
+   * explicit goals for future months are removed so they inherit the new default.
    */
   save(monthKey: string, targetAmount: number, applyToFutureMonths: boolean): Promise<ResolvedGoal> {
     return resolveAsync(() => {
-      if (!MONTH_KEY_RE.test(monthKey)) throw new ValidationError('Mês inválido.');
+      if (!MONTH_KEY_RE.test(monthKey)) throw new ValidationError('Invalid month.');
       const amount = roundMoney(targetAmount);
-      if (!Number.isFinite(amount) || amount < 0) throw new ValidationError('A meta não pode ser negativa.');
+      if (!Number.isFinite(amount) || amount < 0) throw new ValidationError('The goal cannot be negative.');
 
       let goals = loadGoals().filter((g) => g.monthKey !== monthKey);
 

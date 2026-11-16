@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import { ArrowDownRight, ArrowUpRight, Scale } from 'lucide-react';
 import type { MonthSummary } from '../types/finance';
-import { formatBRL } from '../utils/money';
 import type { ResolvedGoal } from '../services';
+import { useCurrency } from '../hooks/useCurrency';
 import { GoalCard } from './GoalCard';
 
 interface SummaryCardsProps {
@@ -39,7 +39,9 @@ function StatCard({
         <span className="text-sm font-medium text-slate-400">{label}</span>
         <span className={`flex size-8 items-center justify-center rounded-lg ring-1 ${toneMap.icon}`}>{icon}</span>
       </div>
-      <p className={`money mt-3 text-2xl font-semibold sm:text-[1.75rem] ${toneMap.value}`}>{value}</p>
+      <p className={`money mt-3 truncate text-2xl font-semibold sm:text-[1.75rem] ${toneMap.value}`} title={value}>
+        {value}
+      </p>
       <div className="mt-auto pt-2 text-xs text-slate-500">{footer}</div>
     </div>
   );
@@ -48,38 +50,39 @@ function StatCard({
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export function SummaryCards({ summary, goal, incomeCount, expenseCount, onSaveGoal }: SummaryCardsProps) {
+  const { format } = useCurrency();
   const savingsRate = summary.income > 0 ? (summary.balance / summary.income) * 100 : null;
 
   return (
-    <section aria-label="Resumo do mês" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <section aria-label="Monthly summary" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <StatCard
-        label="Receitas do mês"
-        value={formatBRL(summary.income)}
+        label="Monthly income"
+        value={format(summary.income)}
         tone="emerald"
         icon={<ArrowUpRight className="size-4" />}
-        footer={plural(incomeCount, 'lançamento', 'lançamentos')}
+        footer={plural(incomeCount, 'transaction', 'transactions')}
       />
       <StatCard
-        label="Gastos do mês"
-        value={formatBRL(summary.expense)}
+        label="Monthly expenses"
+        value={format(summary.expense)}
         tone="rose"
         icon={<ArrowDownRight className="size-4" />}
-        footer={plural(expenseCount, 'lançamento', 'lançamentos')}
+        footer={plural(expenseCount, 'transaction', 'transactions')}
       />
       <StatCard
-        label="Saldo do mês"
-        value={formatBRL(summary.balance)}
+        label="Monthly balance"
+        value={format(summary.balance)}
         tone={summary.balance < 0 ? 'neg' : 'slate'}
         icon={<Scale className="size-4" />}
         footer={
           savingsRate === null ? (
-            'Sem receitas no mês'
+            'No income this month'
           ) : (
             <span>
               <span className={`money ${savingsRate >= 0 ? 'text-slate-300' : 'text-rose-400'}`}>
-                {savingsRate.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
+                {savingsRate.toLocaleString('en-US', { maximumFractionDigits: 1 })}%
               </span>{' '}
-              das receitas {savingsRate >= 0 ? 'preservadas' : 'em déficit'}
+              of income {savingsRate >= 0 ? 'kept' : 'in deficit'}
             </span>
           )
         }

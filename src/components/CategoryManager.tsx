@@ -23,9 +23,9 @@ const PALETTE = [
 ];
 
 const TYPE_OPTIONS: { value: CategoryType; label: string }[] = [
-  { value: 'EXPENSE', label: 'Gasto' },
-  { value: 'INCOME', label: 'Receita' },
-  { value: 'BOTH', label: 'Ambos' },
+  { value: 'EXPENSE', label: 'Expense' },
+  { value: 'INCOME', label: 'Income' },
+  { value: 'BOTH', label: 'Both' },
 ];
 
 const TYPE_CHIP: Record<CategoryType, string> = {
@@ -80,16 +80,16 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return setError('Informe o nome da categoria.');
-    if (!HEX_RE.test(form.color)) return setError('Cor inválida. Use o formato #RRGGBB.');
+    if (!form.name.trim()) return setError('Enter a category name.');
+    if (!HEX_RE.test(form.color)) return setError('Invalid color. Use the #RRGGBB format.');
     setSaving(true);
     try {
       if (editingId) {
         await onUpdate(editingId, form);
-        toast.success('Categoria atualizada. O histórico e os gráficos já refletem a mudança.');
+        toast.success('Category updated. History and charts already reflect the change.');
       } else {
         await onCreate(form);
-        toast.success('Categoria criada.');
+        toast.success('Category created.');
       }
       resetForm();
     } catch (err) {
@@ -114,10 +114,10 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
     try {
       await onRemove(id);
       if (editingId === id) resetForm();
-      toast.success('Categoria excluída.');
+      toast.success('Category deleted.');
       setPendingDelete(null);
     } catch (err) {
-      // Defesa em profundidade: o service também barra (409).
+      // Defense in depth: the service also blocks this (409).
       toast.error(getErrorMessage(err));
       setPendingDelete(null);
       setBlockedDelete(id);
@@ -133,36 +133,36 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
         type,
         items: categories
           .filter((c) => c.type === type)
-          .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
+          .sort((a, b) => a.name.localeCompare(b.name)),
       }))
       .filter((g) => g.items.length > 0);
   }, [categories]);
 
-  const groupTitle: Record<CategoryType, string> = { EXPENSE: 'Gastos', INCOME: 'Receitas', BOTH: 'Gastos e receitas' };
+  const groupTitle: Record<CategoryType, string> = { EXPENSE: 'Expenses', INCOME: 'Income', BOTH: 'Expenses & income' };
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Categorias"
-      description="Organize seus lançamentos. Alterações refletem em todo o histórico."
+      title="Categories"
+      description="Organize your transactions. Changes apply to your whole history."
       size="lg"
     >
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">
-        {/* Formulário */}
+        {/* Form */}
         <form onSubmit={submit} noValidate className="space-y-4 md:sticky md:top-0 md:self-start">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-slate-200">{editingId ? 'Editar categoria' : 'Nova categoria'}</h3>
+            <h3 className="text-sm font-semibold text-slate-200">{editingId ? 'Edit category' : 'New category'}</h3>
             {editingId && (
               <button type="button" onClick={resetForm} className="text-xs text-slate-400 hover:text-slate-200">
-                Cancelar edição
+                Cancel editing
               </button>
             )}
           </div>
 
           <div>
             <label htmlFor="cat-name" className="label">
-              Nome
+              Name
             </label>
             <div className="relative">
               <span
@@ -178,7 +178,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
                   setForm((f) => ({ ...f, name: e.target.value }));
                   setError(null);
                 }}
-                placeholder="Ex: Educação"
+                placeholder="e.g. Education"
                 className="field pl-8"
                 data-autofocus
               />
@@ -186,7 +186,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
           </div>
 
           <div>
-            <span className="label">Tipo</span>
+            <span className="label">Type</span>
             <div role="radiogroup" className="flex h-10 rounded-lg border border-slate-800 bg-slate-950/60 p-1">
               {TYPE_OPTIONS.map((o) => (
                 <button
@@ -206,14 +206,14 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
           </div>
 
           <div>
-            <span className="label">Cor</span>
+            <span className="label">Color</span>
             <div className="grid grid-cols-10 gap-1.5">
               {PALETTE.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  aria-label={`Cor ${c}`}
+                  aria-label={`Color ${c}`}
                   className={`flex aspect-square items-center justify-center rounded-md transition hover:scale-110 ${
                     form.color.toLowerCase() === c ? 'ring-2 ring-white ring-offset-2 ring-offset-slate-900' : ''
                   }`}
@@ -227,14 +227,14 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
               <label
                 className="relative size-10 shrink-0 cursor-pointer overflow-hidden rounded-lg border border-slate-800"
                 style={{ backgroundColor: HEX_RE.test(form.color) ? form.color : '#475569' }}
-                title="Escolher cor personalizada"
+                title="Pick a custom color"
               >
                 <input
                   type="color"
                   value={HEX_RE.test(form.color) ? form.color : '#475569'}
                   onChange={(e) => setColor(e.target.value)}
                   className="absolute inset-0 cursor-pointer opacity-0"
-                  aria-label="Seletor de cor personalizada"
+                  aria-label="Custom color picker"
                 />
               </label>
               <input
@@ -247,7 +247,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
                   setHexDraft(v);
                   if (HEX_RE.test(v)) setForm((f) => ({ ...f, color: v.toLowerCase() }));
                 }}
-                aria-label="Cor em hexadecimal"
+                aria-label="Hex color"
                 className={`field money uppercase ${HEX_RE.test(hexDraft) ? '' : 'border-amber-500/60'}`}
               />
             </div>
@@ -268,15 +268,15 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
             ) : (
               <Plus className="size-4" />
             )}
-            {editingId ? 'Salvar alterações' : 'Adicionar categoria'}
+            {editingId ? 'Save changes' : 'Add category'}
           </button>
         </form>
 
-        {/* Lista */}
+        {/* List */}
         <div className="space-y-5">
           {categories.length === 0 && (
             <p className="rounded-lg border border-dashed border-slate-800 p-6 text-center text-sm text-slate-500">
-              Nenhuma categoria. Crie a primeira ao lado.
+              No categories yet. Create your first one.
             </p>
           )}
           {grouped.map((g) => (
@@ -298,21 +298,21 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm text-slate-200">{c.name}</p>
                           <p className="text-[11px] text-slate-500">
-                            {count === 0 ? 'Sem lançamentos' : `${count} lançamento${count === 1 ? '' : 's'}`}
+                            {count === 0 ? 'No transactions' : `${count} transaction${count === 1 ? '' : 's'}`}
                           </p>
                         </div>
                         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ${TYPE_CHIP[c.type]}`}>
                           {TYPE_OPTIONS.find((o) => o.value === c.type)?.label}
                         </span>
-                        <button type="button" onClick={() => startEdit(c)} className="icon-btn" aria-label={`Editar ${c.name}`}>
+                        <button type="button" onClick={() => startEdit(c)} className="icon-btn" aria-label={`Edit ${c.name}`}>
                           <Pencil className="size-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => requestDelete(c)}
                           className={`icon-btn ${count > 0 ? 'text-slate-600 hover:text-amber-400' : 'hover:bg-rose-500/10 hover:text-rose-400'}`}
-                          aria-label={`Excluir ${c.name}`}
-                          title={count > 0 ? 'Categoria em uso — não pode ser excluída' : 'Excluir categoria'}
+                          aria-label={`Delete ${c.name}`}
+                          title={count > 0 ? 'Category in use — cannot be deleted' : 'Delete category'}
                         >
                           {count > 0 ? <Lock className="size-3.5" /> : <Trash2 className="size-3.5" />}
                         </button>
@@ -322,11 +322,10 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
                         <div className="fade-in mt-2.5 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-200">
                           <AlertTriangle className="mt-px size-3.5 shrink-0 text-amber-400" />
                           <span className="flex-1">
-                            <strong>{c.name}</strong> possui {count} lançamento{count === 1 ? '' : 's'} vinculado
-                            {count === 1 ? '' : 's'} e não pode ser excluída. Edite ou exclua esses lançamentos antes,
-                            ou apenas renomeie a categoria.
+                            <strong>{c.name}</strong> has {count} linked transaction{count === 1 ? '' : 's'} and cannot be deleted.
+                            Edit or delete those transactions first, or just rename the category.
                           </span>
-                          <button type="button" onClick={() => setBlockedDelete(null)} className="text-amber-300/70 hover:text-amber-100" aria-label="Fechar aviso">
+                          <button type="button" onClick={() => setBlockedDelete(null)} className="text-amber-300/70 hover:text-amber-100" aria-label="Dismiss warning">
                             <X className="size-3.5" />
                           </button>
                         </div>
@@ -334,9 +333,9 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
 
                       {pendingDelete === c.id && (
                         <div className="fade-in mt-2.5 flex flex-wrap items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 p-2.5 text-xs text-rose-200">
-                          <span className="flex-1">Excluir “{c.name}” definitivamente?</span>
+                          <span className="flex-1">Permanently delete “{c.name}”?</span>
                           <button type="button" onClick={() => setPendingDelete(null)} className="rounded-md px-2 py-1 text-slate-300 hover:bg-slate-800">
-                            Cancelar
+                            Cancel
                           </button>
                           <button
                             type="button"
@@ -345,7 +344,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
                             className="inline-flex items-center gap-1 rounded-md bg-rose-500 px-2.5 py-1 font-medium text-white hover:bg-rose-400 disabled:opacity-60"
                           >
                             {deleting && <Loader2 className="size-3 animate-spin" />}
-                            Excluir
+                            Delete
                           </button>
                         </div>
                       )}

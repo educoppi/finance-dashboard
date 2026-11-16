@@ -3,14 +3,17 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import { ToastProvider } from './hooks/useToast';
+import { CurrencyProvider } from './hooks/useCurrency';
 
 const root = document.getElementById('root');
-if (!root) throw new Error('Elemento #root não encontrado.');
+if (!root) throw new Error('Root element #root not found.');
 
 createRoot(root).render(
   <StrictMode>
-    <ToastProvider>
-      <App />
-    </ToastProvider>
+    <CurrencyProvider>
+      <ToastProvider>
+        <App />
+      </ToastProvider>
+    </CurrencyProvider>
   </StrictMode>,
 );

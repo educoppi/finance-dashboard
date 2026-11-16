@@ -2,7 +2,7 @@ import type { Category, CategoryType, MonthSummary, Transaction, TransactionType
 import { dayOf, daysInMonth, monthKeyOf } from './date';
 import { roundMoney, sumMoney } from './money';
 
-/** Limiar da Zona de Atenção: margem livre <= 20% do teto. */
+/** Warning zone threshold: free margin <= 20% of the spending cap. */
 export const WARNING_THRESHOLD = 0.2;
 
 export function filterByMonth(transactions: Transaction[], monthKey: string): Transaction[] {
@@ -14,21 +14,21 @@ export function isCategoryCompatible(categoryType: CategoryType, txType: Transac
 }
 
 /**
- * Regras da meta de economia:
- *   Teto de Gastos = Receitas - Meta
- *   Margem Livre   = Teto - Gastos
+ * Savings goal rules:
+ *   Spending cap = Income - Goal
+ *   Free margin  = Cap - Expenses
  *
- * Estados:
- *   NEUTRAL  — sem receitas no mês (não há base para o teto)
- *   EXCEEDED — margem < 0
- *   WARNING  — 0 <= margem <= 20% do teto
- *   ON_TRACK — margem > 20% do teto
+ * States:
+ *   NEUTRAL  — no income this month (no basis for a cap)
+ *   EXCEEDED — margin < 0
+ *   WARNING  — 0 <= margin <= 20% of the cap
+ *   ON_TRACK — margin > 20% of the cap
  *
- * Bordas:
- *  - meta == receitas, sem gastos → teto 0, margem 0 → WARNING (nenhum gasto cabe).
- *  - meta > receitas → teto < 0, margem < 0 → EXCEEDED mesmo sem gastos: as
- *    receitas não cobrem a reserva (a UI usa uma mensagem específica).
- *  - gastos > receitas com meta 0 → EXCEEDED (saldo negativo).
+ * Edge cases:
+ *  - goal == income, no expenses → cap 0, margin 0 → WARNING (no room to spend).
+ *  - goal > income → cap < 0, margin < 0 → EXCEEDED even without expenses: income
+ *    does not cover the reserve (the UI shows a dedicated message).
+ *  - expenses > income with goal 0 → EXCEEDED (negative balance).
  */
 export function computeMonthSummary(monthTx: Transaction[], goal: number): MonthSummary {
   const income = sumMoney(monthTx.filter((t) => t.type === 'INCOME').map((t) => t.amount));
@@ -67,7 +67,7 @@ export function expensesByCategory(monthTx: Transaction[], categories: Category[
       const cat = byId.get(categoryId);
       return {
         categoryId,
-        name: cat?.name ?? 'Sem categoria',
+        name: cat?.name ?? 'Uncategorized',
         color: cat?.color ?? '#475569',
         value: cents / 100,
         percent: totalCents ? cents / totalCents : 0,
@@ -82,7 +82,7 @@ export interface DailyPoint {
   cumulative: number;
 }
 
-/** Série de gastos acumulados dia a dia (1..N dias do mês). */
+/** Day-by-day cumulative expense series (days 1..N of the month). */
 export function cumulativeExpenses(monthTx: Transaction[], monthKey: string): DailyPoint[] {
   const n = daysInMonth(monthKey);
   const dailyCents = new Array<number>(n + 1).fill(0);

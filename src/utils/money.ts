@@ -1,60 +1,70 @@
-const brl = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
+import type { CurrencyConfig } from './currency';
 
-const brlCompact = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
-
-/** Arredonda para centavos evitando erros de ponto flutuante (0.1 + 0.2). */
+/** Rounds to cents, avoiding floating-point drift (0.1 + 0.2). */
 export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-/** Soma em centavos inteiros e devolve em reais — sem acúmulo de erro. */
+/** Sums in integer cents and returns the total in currency units — no error accumulation. */
 export function sumMoney(values: number[]): number {
   const cents = values.reduce((acc, v) => acc + Math.round(v * 100), 0);
   return cents / 100;
 }
 
-export function formatBRL(value: number): string {
-  // Evita "-R$ 0,00" quando o valor arredondado é zero.
-  const v = roundMoney(value);
-  return brl.format(Object.is(v, -0) ? 0 : v);
+export interface MoneyFormatter {
+  /** Full format, e.g. "$1,234.56" */
+  format: (value: number) => string;
+  /** Compact format for chart axes, e.g. "$1.2K" */
+  formatCompact: (value: number) => string;
+  /** Input mask: treats typed digits as minor units ("1234" → "12.34" in USD). */
+  mask: (raw: string) => string;
+  /** Masked string → number ("1,234.56" → 1234.56). */
+  parse: (masked: string) => number;
+  /** Number → masked string, to prefill inputs when editing. */
+  toInput: (value: number) => string;
+  /** Zero in the input's format, e.g. "0.00" (USD), "0,00" (BRL), "0" (JPY). */
+  placeholder: string;
 }
 
-export function formatBRLCompact(value: number): string {
-  return brlCompact.format(value);
-}
-
-/**
- * Máscara monetária: trata a entrada como centavos digitados.
- * "1" -> "0,01", "1234" -> "12,34", "123456" -> "1.234,56"
- */
-export function maskCurrencyInput(raw: string): string {
-  const digits = raw.replace(/\D/g, '').replace(/^0+/, '').slice(0, 13);
-  if (!digits) return '';
-  const cents = Number(digits);
-  return (cents / 100).toLocaleString('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+export function createMoneyFormatter(currency: CurrencyConfig): MoneyFormatter {
+  const { locale, code, decimals } = currency;
+  const full = new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: code,
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
   });
-}
+  // Compact suffixes follow the UI language ("1.2K"), not the currency locale ("1,2 mil").
+  const compact = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: code,
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  });
+  const plain = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  });
+  const factor = 10 ** decimals;
 
-/** "1.234,56" -> 1234.56 ; string vazia -> 0 */
-export function parseCurrencyInput(masked: string): number {
-  const digits = masked.replace(/\D/g, '');
-  if (!digits) return 0;
-  return Number(digits) / 100;
-}
+  const mask = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').replace(/^0+/, '').slice(0, 13);
+    if (!digits) return '';
+    return plain.format(Number(digits) / factor);
+  };
 
-/** 1234.56 -> "1.234,56" (para preencher o input em modo edição). */
-export function toCurrencyInput(value: number): string {
-  return maskCurrencyInput(String(Math.round(value * 100)));
+  return {
+    format: (value) => {
+      const v = Math.round((value + Number.EPSILON) * factor) / factor;
+      return full.format(Object.is(v, -0) ? 0 : v); // never "-$0.00"
+    },
+    formatCompact: (value) => compact.format(value),
+    mask,
+    parse: (masked) => {
+      const digits = masked.replace(/\D/g, '');
+      return digits ? Number(digits) / factor : 0;
+    },
+    toInput: (value) => mask(String(Math.round(value * factor))),
+    placeholder: plain.format(0),
+  };
 }

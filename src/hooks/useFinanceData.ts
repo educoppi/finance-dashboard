@@ -5,8 +5,8 @@ import type { Category, CategoryInput, Transaction, TransactionInput } from '../
 import { monthKeyOf } from '../utils/date';
 
 /**
- * Orquestra o estado da tela a partir dos services. Os componentes só
- * conhecem este hook — nunca o mecanismo de armazenamento.
+ * Coordinates screen state on top of the services. Components only know
+ * this hook — never the storage mechanism.
  */
 export function useFinanceData(monthKey: string) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -15,7 +15,7 @@ export function useFinanceData(monthKey: string) {
   const [categoryUsage, setCategoryUsage] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
-  // Evita que respostas de um mês antigo sobrescrevam o mês atual (race condition).
+  // Prevents responses for a previous month from overwriting the current one (race condition).
   const monthRef = useRef(monthKey);
   monthRef.current = monthKey;
 
@@ -110,7 +110,7 @@ export function useFinanceData(monthKey: string) {
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  // Defesa extra: garante isolamento do mês mesmo se a fonte devolver a mais.
+  // Extra safety: guarantees month isolation even if the source returns more.
   const monthTransactions = useMemo(
     () => transactions.filter((t) => monthKeyOf(t.date) === monthKey),
     [transactions, monthKey],

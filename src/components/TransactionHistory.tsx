@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { FilterX, Inbox, Pencil, Receipt, Search, SearchX, Trash2 } from 'lucide-react';
 import type { Category, Transaction } from '../types/finance';
-import { formatDateBR, formatMonthLabel } from '../utils/date';
-import { formatBRL, sumMoney } from '../utils/money';
+import { formatDate, formatMonthLabel } from '../utils/date';
+import { sumMoney } from '../utils/money';
+import { useCurrency } from '../hooks/useCurrency';
 import { CategorySelect } from './ui/CategorySelect';
 
 type TypeFilter = 'ALL' | 'EXPENSE' | 'INCOME';
@@ -20,7 +21,7 @@ interface TransactionHistoryProps {
 
 const ALL = '__all__';
 
-/** Normaliza para busca sem acento e sem caixa ("Almoço" ~ "almoco"). */
+/** Normalizes for accent- and case-insensitive search ("Café" ~ "cafe"). */
 const normalize = (s: string) =>
   s
     .normalize('NFD')
@@ -35,17 +36,18 @@ function CategoryBadge({ category }: { category: Category | undefined }) {
       style={{ backgroundColor: `${color}1f`, color, boxShadow: `inset 0 0 0 1px ${color}40` }}
     >
       <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-      <span className="truncate">{category?.name ?? 'Sem categoria'}</span>
+      <span className="truncate">{category?.name ?? 'Uncategorized'}</span>
     </span>
   );
 }
 
 function Amount({ t }: { t: Transaction }) {
+  const { format } = useCurrency();
   const income = t.type === 'INCOME';
   return (
     <span className={`money font-medium whitespace-nowrap ${income ? 'text-emerald-400' : 'text-rose-400'}`}>
       {income ? '+ ' : '- '}
-      {formatBRL(t.amount)}
+      {format(t.amount)}
     </span>
   );
 }
@@ -60,11 +62,12 @@ export function TransactionHistory({
   onEdit,
   onDelete,
 }: TransactionHistoryProps) {
+  const { format } = useCurrency();
   const [query, setQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('ALL');
   const [categoryFilter, setCategoryFilter] = useState(ALL);
 
-  // Se a categoria filtrada for excluída, o filtro volta para "todas".
+  // If the filtered category is deleted, the filter falls back to "all".
   const effectiveCategory = categoryFilter !== ALL && !categoriesById.has(categoryFilter) ? ALL : categoryFilter;
   const hasFilters = query.trim() !== '' || typeFilter !== 'ALL' || effectiveCategory !== ALL;
 
@@ -89,24 +92,24 @@ export function TransactionHistory({
   };
 
   const typeOptions: { value: TypeFilter; label: string }[] = [
-    { value: 'ALL', label: 'Todos' },
-    { value: 'EXPENSE', label: 'Gastos' },
-    { value: 'INCOME', label: 'Receitas' },
+    { value: 'ALL', label: 'All' },
+    { value: 'EXPENSE', label: 'Expenses' },
+    { value: 'INCOME', label: 'Income' },
   ];
 
   return (
-    <section aria-label="Histórico de lançamentos" className="card">
+    <section aria-label="Transaction history" className="card">
       <div className="flex flex-col gap-3 border-b border-slate-800 p-4 sm:p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h2 className="text-sm font-semibold text-slate-200">Histórico</h2>
-            <p className="text-xs text-slate-500">Lançamentos de {formatMonthLabel(monthKey)}</p>
+            <h2 className="text-sm font-semibold text-slate-200">History</h2>
+            <p className="text-xs text-slate-500">Transactions for {formatMonthLabel(monthKey)}</p>
           </div>
           {transactions.length > 0 && (
             <p className="text-xs text-slate-500">
-              {filtered.length} de {transactions.length} · saldo filtrado{' '}
+              {filtered.length} of {transactions.length} · filtered balance{' '}
               <span className={`money ${filteredNet < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {formatBRL(filteredNet)}
+                {format(filteredNet)}
               </span>
             </p>
           )}
@@ -119,12 +122,12 @@ export function TransactionHistory({
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Buscar pela descrição…"
-              aria-label="Buscar pela descrição"
+              placeholder="Search by description…"
+              aria-label="Search by description"
               className="field pl-9"
             />
           </div>
-          <div role="radiogroup" aria-label="Filtrar por tipo" className="flex h-10 rounded-lg border border-slate-800 bg-slate-950/60 p-1">
+          <div role="radiogroup" aria-label="Filter by type" className="flex h-10 rounded-lg border border-slate-800 bg-slate-950/60 p-1">
             {typeOptions.map((o) => (
               <button
                 key={o.value}
@@ -142,7 +145,7 @@ export function TransactionHistory({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {o.value === 'ALL' ? o.label : `Apenas ${o.label.toLowerCase()}`}
+                {o.value === 'ALL' ? o.label : `${o.label} only`}
               </button>
             ))}
           </div>
@@ -150,13 +153,13 @@ export function TransactionHistory({
             categories={categories}
             value={effectiveCategory}
             onChange={setCategoryFilter}
-            allOption={{ value: ALL, label: 'Todas as categorias' }}
-            aria-label="Filtrar por categoria"
+            allOption={{ value: ALL, label: 'All categories' }}
+            aria-label="Filter by category"
           />
           {hasFilters ? (
             <button type="button" onClick={clear} className="btn-ghost text-slate-300">
               <FilterX className="size-4" />
-              Limpar filtros
+              Clear filters
             </button>
           ) : (
             <span className="hidden lg:block" />
@@ -176,9 +179,9 @@ export function TransactionHistory({
             <Inbox className="size-5" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-200">Nenhum lançamento em {formatMonthLabel(monthKey)}</p>
+            <p className="text-sm font-medium text-slate-200">No transactions in {formatMonthLabel(monthKey)}</p>
             <p className="mt-1 text-xs text-slate-500">
-              Use a barra de lançamento rápido acima para registrar sua primeira receita ou gasto do mês.
+              Use the quick entry bar above to log your first income or expense of the month.
             </p>
           </div>
           <button
@@ -190,7 +193,7 @@ export function TransactionHistory({
             className="btn-primary h-9 text-xs"
           >
             <Receipt className="size-4" />
-            Fazer um lançamento
+            Add a transaction
           </button>
         </div>
       ) : filtered.length === 0 ? (
@@ -199,27 +202,27 @@ export function TransactionHistory({
             <SearchX className="size-5" />
           </div>
           <div>
-            <p className="text-sm font-medium text-slate-200">Nenhum lançamento corresponde aos filtros</p>
-            <p className="mt-1 text-xs text-slate-500">Tente outro termo de busca ou remova algum filtro.</p>
+            <p className="text-sm font-medium text-slate-200">No transactions match your filters</p>
+            <p className="mt-1 text-xs text-slate-500">Try another search term or remove a filter.</p>
           </div>
           <button type="button" onClick={clear} className="btn-ghost h-9 text-xs">
             <FilterX className="size-4" />
-            Limpar filtros
+            Clear filters
           </button>
         </div>
       ) : (
         <>
-          {/* Desktop: tabela */}
+          {/* Desktop: table */}
           <div className="hidden md:block">
             <table className="w-full table-fixed text-sm">
               <thead>
                 <tr className="text-left text-xs text-slate-500">
-                  <th className="w-28 px-5 py-2.5 font-medium">Data</th>
-                  <th className="w-48 px-3 py-2.5 font-medium">Categoria</th>
-                  <th className="px-3 py-2.5 font-medium">Descrição</th>
-                  <th className="w-40 px-3 py-2.5 text-right font-medium">Valor</th>
+                  <th className="w-28 px-5 py-2.5 font-medium">Date</th>
+                  <th className="w-48 px-3 py-2.5 font-medium">Category</th>
+                  <th className="px-3 py-2.5 font-medium">Description</th>
+                  <th className="w-40 px-3 py-2.5 text-right font-medium">Amount</th>
                   <th className="w-24 px-5 py-2.5 text-right font-medium">
-                    <span className="sr-only">Ações</span>
+                    <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
@@ -229,7 +232,7 @@ export function TransactionHistory({
                     key={t.id}
                     className={`group transition-colors hover:bg-slate-800/40 ${t.id === highlightId ? 'row-flash' : ''}`}
                   >
-                    <td className="money px-5 py-3 text-slate-400">{formatDateBR(t.date)}</td>
+                    <td className="money px-5 py-3 text-slate-400">{formatDate(t.date)}</td>
                     <td className="px-3 py-3">
                       <CategoryBadge category={categoriesById.get(t.categoryId)} />
                     </td>
@@ -241,14 +244,14 @@ export function TransactionHistory({
                     </td>
                     <td className="px-5 py-3">
                       <div className="flex justify-end gap-1 opacity-60 transition group-hover:opacity-100 focus-within:opacity-100">
-                        <button type="button" onClick={() => onEdit(t)} className="icon-btn" aria-label={`Editar ${t.description}`}>
+                        <button type="button" onClick={() => onEdit(t)} className="icon-btn" aria-label={`Edit ${t.description}`}>
                           <Pencil className="size-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => onDelete(t)}
                           className="icon-btn hover:bg-rose-500/10 hover:text-rose-400"
-                          aria-label={`Excluir ${t.description}`}
+                          aria-label={`Delete ${t.description}`}
                         >
                           <Trash2 className="size-3.5" />
                         </button>
@@ -260,28 +263,28 @@ export function TransactionHistory({
             </table>
           </div>
 
-          {/* Mobile: lista */}
+          {/* Mobile: list */}
           <ul className="divide-y divide-slate-800/70 md:hidden">
             {filtered.map((t) => (
               <li key={t.id} className={`flex items-center gap-3 px-4 py-3 ${t.id === highlightId ? 'row-flash' : ''}`}>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm text-slate-200">{t.description}</p>
                   <div className="mt-1 flex items-center gap-2">
-                    <span className="money text-xs text-slate-500">{formatDateBR(t.date)}</span>
+                    <span className="money text-xs text-slate-500">{formatDate(t.date)}</span>
                     <CategoryBadge category={categoriesById.get(t.categoryId)} />
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1">
                   <Amount t={t} />
                   <div className="flex gap-0.5">
-                    <button type="button" onClick={() => onEdit(t)} className="icon-btn size-7" aria-label={`Editar ${t.description}`}>
+                    <button type="button" onClick={() => onEdit(t)} className="icon-btn size-7" aria-label={`Edit ${t.description}`}>
                       <Pencil className="size-3.5" />
                     </button>
                     <button
                       type="button"
                       onClick={() => onDelete(t)}
                       className="icon-btn size-7 hover:text-rose-400"
-                      aria-label={`Excluir ${t.description}`}
+                      aria-label={`Delete ${t.description}`}
                     >
                       <Trash2 className="size-3.5" />
                     </button>

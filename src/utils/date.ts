@@ -1,16 +1,16 @@
 const pad = (n: number) => String(n).padStart(2, '0');
 
 /**
- * Data de hoje no fuso LOCAL ("YYYY-MM-DD").
- * Nunca usar `toISOString()` aqui: ele converte para UTC e, à noite no Brasil
- * (UTC-3), retornaria o dia seguinte.
+ * Today's date in the LOCAL timezone ("YYYY-MM-DD").
+ * Never use `toISOString()` here: it converts to UTC and, in the evening in
+ * negative-offset timezones (e.g. UTC-3), it would return the next day.
  */
 export function getLocalTodayISO(): string {
   const now = new Date();
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-/** "YYYY-MM" do mês atual, no fuso local. */
+/** Current month as "YYYY-MM", in the local timezone. */
 export function getCurrentMonthKey(): string {
   const now = new Date();
   return toMonthKey(now.getFullYear(), now.getMonth() + 1);
@@ -32,14 +32,14 @@ export function shiftMonthKey(monthKey: string, delta: number): string {
   return toMonthKey(Math.floor(zeroBased / 12), (zeroBased % 12) + 1);
 }
 
-/** Quantidade de dias do mês (28/29/30/31). */
+/** Number of days in the month (28/29/30/31). */
 export function daysInMonth(monthKey: string): number {
   const { year, month } = parseMonthKey(monthKey);
-  // Dia 0 do mês seguinte = último dia do mês atual (construtor local, sem UTC).
+  // Day 0 of the next month = last day of this month (local constructor, no UTC).
   return new Date(year, month, 0).getDate();
 }
 
-/** "2026-11-05" -> "2026-11" (comparação por string, sem Date). */
+/** "2026-11-05" -> "2026-11" (string comparison, no Date involved). */
 export function monthKeyOf(isoDate: string): string {
   return isoDate.slice(0, 7);
 }
@@ -48,25 +48,34 @@ export function dayOf(isoDate: string): number {
   return Number(isoDate.slice(8, 10));
 }
 
-/** "2026-11-05" -> "05/11/2026" */
-export function formatDateBR(isoDate: string): string {
-  const [y, m, d] = isoDate.split('-');
-  return `${d}/${m}/${y}`;
+const dateFmt = new Intl.DateTimeFormat('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
+const monthFmt = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' });
+const shortMonthFmt = new Intl.DateTimeFormat('en-US', { month: 'short' });
+
+/** Builds a Date from local parts (never parses an ISO string, which would be UTC). */
+function localDate(isoDate: string): Date {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1);
 }
 
-const MONTH_NAMES = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
-];
+/** "2026-11-05" -> "Nov 05, 2026" (unambiguous in any English locale). */
+export function formatDate(isoDate: string): string {
+  return dateFmt.format(localDate(isoDate));
+}
 
+/** "2026-11" -> "November 2026" */
 export function formatMonthLabel(monthKey: string): string {
-  const { year, month } = parseMonthKey(monthKey);
-  return `${MONTH_NAMES[month - 1] ?? ''} ${year}`;
+  return monthFmt.format(localDate(`${monthKey}-01`));
+}
+
+/** (monthKey, day) -> "Nov 5" */
+export function formatDayLabel(monthKey: string, day: number): string {
+  return `${shortMonthFmt.format(localDate(`${monthKey}-01`))} ${day}`;
 }
 
 /**
- * Data padrão para lançar num mês selecionado: hoje, se for o mês corrente;
- * senão, o dia 1 daquele mês.
+ * Default date for a new entry in the selected month: today if it is the
+ * current month; otherwise, the 1st of that month.
  */
 export function defaultDateForMonth(monthKey: string): string {
   const today = getLocalTodayISO();

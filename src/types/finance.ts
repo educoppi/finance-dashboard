@@ -1,5 +1,5 @@
 /**
- * Modelagem de domínio — espelha as futuras entidades JPA / tabelas MySQL.
+ * Domain model — mirrors the future JPA entities / MySQL tables.
  *
  *   categories   (id CHAR(36) PK, name, color CHAR(7), type ENUM)
  *   transactions (id CHAR(36) PK, type ENUM, amount DECIMAL(12,2), description,
@@ -14,16 +14,16 @@ export type CategoryType = TransactionType | 'BOTH';
 export interface Category {
   id: string; // UUID
   name: string;
-  color: string; // Hex (ex: "#10b981")
+  color: string; // Hex (e.g. "#10b981")
   type: CategoryType;
 }
 
 export interface Transaction {
   id: string; // UUID
   type: TransactionType;
-  amount: number; // Valor positivo em reais (2 casas decimais)
+  amount: number; // Positive amount in the user's currency
   description: string;
-  categoryId: string; // FK lógica -> Category.id
+  categoryId: string; // Logical FK -> Category.id
   date: string; // ISO local "YYYY-MM-DD"
   createdAt: string; // ISO timestamp
 }
@@ -33,7 +33,7 @@ export interface MonthlyGoal {
   targetAmount: number;
 }
 
-/** Payloads de criação/edição (equivalentes aos DTOs de request da API). */
+/** Create/update payloads (equivalent to the API request DTOs). */
 export type TransactionInput = Omit<Transaction, 'id' | 'createdAt'>;
 export type CategoryInput = Omit<Category, 'id'>;
 
@@ -44,7 +44,7 @@ export interface MonthSummary {
   expense: number;
   balance: number;
   goal: number;
-  spendingCap: number; // Teto de Gastos = Receitas - Meta
-  freeMargin: number; // Margem Livre = Teto - Gastos
+  spendingCap: number; // Spending cap = Income - Goal
+  freeMargin: number; // Free margin = Cap - Expenses
   status: GoalStatus;
 }

@@ -1,5 +1,5 @@
 /**
- * Erros de domínio. Na Fase 2 serão mapeados a partir dos status HTTP:
+ * Domain errors. In Phase 2 they will be mapped from HTTP status codes:
  *   400 -> ValidationError, 404 -> NotFoundError, 409 -> IntegrityError
  */
 export class ServiceError extends Error {

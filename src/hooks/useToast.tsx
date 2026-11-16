@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               type="button"
               onClick={() => dismiss(t.id)}
               className="text-slate-400 transition hover:text-slate-100"
-              aria-label="Fechar aviso"
+              aria-label="Dismiss notification"
             >
               <X className="size-4" />
             </button>
@@ -78,6 +78,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastApi {
   const ctx = useContext(ToastContext);
-  if (!ctx) throw new Error('useToast deve ser usado dentro de <ToastProvider>.');
+  if (!ctx) throw new Error('useToast must be used inside <ToastProvider>.');
   return ctx;
 }

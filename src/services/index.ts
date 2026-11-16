@@ -5,8 +5,8 @@ export { goalService } from './goalService';
 export type { ResolvedGoal } from './goalService';
 export { IntegrityError, NotFoundError, ServiceError, ValidationError } from './errors';
 
-/** Extrai uma mensagem amigável de qualquer erro vindo da camada de serviços. */
+/** Extracts a friendly message from any error raised by the service layer. */
 export function getErrorMessage(err: unknown): string {
   if (err instanceof Error && err.message) return err.message;
-  return 'Ocorreu um erro inesperado. Tente novamente.';
+  return 'Something went wrong. Please try again.';
 }

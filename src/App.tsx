@@ -3,9 +3,9 @@ import type { Transaction, TransactionInput } from './types/finance';
 import { useFinanceData } from './hooks/useFinanceData';
 import { useToast } from './hooks/useToast';
 import { getErrorMessage } from './services';
-import { getCurrentMonthKey, formatDateBR } from './utils/date';
+import { getCurrentMonthKey, formatDate } from './utils/date';
 import { computeMonthSummary, cumulativeExpenses, expensesByCategory } from './utils/finance';
-import { formatBRL } from './utils/money';
+import { useCurrency } from './hooks/useCurrency';
 import { Header } from './components/Header';
 import { QuickAddBar } from './components/QuickAddBar';
 import { SummaryCards } from './components/SummaryCards';
@@ -19,6 +19,7 @@ import { ConfirmDialog } from './components/ui/ConfirmDialog';
 
 export default function App() {
   const toast = useToast();
+  const { format } = useCurrency();
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey);
   const [categoriesOpen, setCategoriesOpen] = useState(false);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -28,7 +29,7 @@ export default function App() {
   const data = useFinanceData(monthKey);
   const { transactions, categories, categoriesById, goal } = data;
 
-  // Todos os derivados são recalculados a partir do mesmo estado → reatividade total.
+  // Every derived value is recomputed from the same state → fully reactive.
   const summary = useMemo(() => computeMonthSummary(transactions, goal.targetAmount), [transactions, goal.targetAmount]);
   const slices = useMemo(() => expensesByCategory(transactions, categories), [transactions, categories]);
   const pace = useMemo(() => cumulativeExpenses(transactions, monthKey), [transactions, monthKey]);
@@ -54,7 +55,7 @@ export default function App() {
     if (!deleting) return;
     try {
       await removeTransaction(deleting.id);
-      toast.success('Lançamento excluído.');
+      toast.success('Transaction deleted.');
       setDeleting(null);
     } catch (err) {
       toast.error(getErrorMessage(err));
@@ -76,7 +77,7 @@ export default function App() {
           onSaveGoal={data.saveGoal}
         />
 
-        <section aria-label="Gráficos" className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+        <section aria-label="Charts" className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
           <CategoryDonut data={slices} total={summary.expense} />
           <SpendingPaceChart
             data={pace}
@@ -99,7 +100,7 @@ export default function App() {
         />
 
         <footer className="pt-2 pb-6 text-center text-[11px] text-slate-600">
-          Dados salvos localmente neste navegador · Fase 1 (MVP)
+          Data is stored locally in this browser · Phase 1 (MVP)
         </footer>
       </main>
 
@@ -112,18 +113,18 @@ export default function App() {
 
       <ConfirmDialog
         open={deleting !== null}
-        title="Excluir lançamento"
+        title="Delete transaction"
         onClose={() => setDeleting(null)}
         onConfirm={handleDelete}
         message={
           deleting && (
             <>
-              Tem certeza que deseja excluir <strong className="text-slate-100">“{deleting.description}”</strong> de{' '}
-              <span className="money">{formatDateBR(deleting.date)}</span> no valor de{' '}
+              Delete <strong className="text-slate-100">“{deleting.description}”</strong> from{' '}
+              <span className="money">{formatDate(deleting.date)}</span> for{' '}
               <span className={`money ${deleting.type === 'INCOME' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatBRL(deleting.amount)}
+                {format(deleting.amount)}
               </span>
-              ? Essa ação não pode ser desfeita.
+              ? This cannot be undone.
             </>
           )
         }

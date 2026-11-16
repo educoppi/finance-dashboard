@@ -1,29 +1,31 @@
 import { forwardRef } from 'react';
 import type { InputHTMLAttributes } from 'react';
-import { maskCurrencyInput } from '../../utils/money';
+import { useCurrency } from '../../hooks/useCurrency';
 
 interface CurrencyInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'type'> {
   value: string;
   onValueChange: (masked: string) => void;
 }
 
-/** Input com máscara monetária pt-BR (digitação em centavos). */
+/** Money input masked in the active currency (typing fills the minor units first). */
 export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(function CurrencyInput(
   { value, onValueChange, className = '', ...rest },
   ref,
 ) {
+  const { symbol, mask, placeholder } = useCurrency();
+  const padLeft = symbol.length > 2 ? 'pl-12' : symbol.length > 1 ? 'pl-10' : 'pl-8';
   return (
     <div className="relative">
-      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-slate-500">R$</span>
+      <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-slate-500">{symbol}</span>
       <input
         ref={ref}
         type="text"
         inputMode="numeric"
         autoComplete="off"
-        placeholder="0,00"
+        placeholder={placeholder}
         value={value}
-        onChange={(e) => onValueChange(maskCurrencyInput(e.target.value))}
-        className={`field money pl-9 text-right ${className}`}
+        onChange={(e) => onValueChange(mask(e.target.value))}
+        className={`field money ${padLeft} text-right ${className}`}
         {...rest}
       />
     </div>

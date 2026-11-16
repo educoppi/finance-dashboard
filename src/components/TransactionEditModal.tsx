@@ -3,10 +3,10 @@ import type { FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { Category, Transaction, TransactionInput, TransactionType } from '../types/finance';
 import { isCategoryCompatible } from '../utils/finance';
-import { parseCurrencyInput, toCurrencyInput } from '../utils/money';
 import { formatMonthLabel, monthKeyOf } from '../utils/date';
 import { getErrorMessage } from '../services';
 import { useToast } from '../hooks/useToast';
+import { useCurrency } from '../hooks/useCurrency';
 import { Modal } from './ui/Modal';
 import { TypeToggle } from './ui/TypeToggle';
 import { CurrencyInput } from './ui/CurrencyInput';
@@ -21,6 +21,7 @@ interface TransactionEditModalProps {
 
 export function TransactionEditModal({ transaction, categories, onClose, onSave }: TransactionEditModalProps) {
   const toast = useToast();
+  const { parse, toInput } = useCurrency();
   const [type, setType] = useState<TransactionType>('EXPENSE');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -32,12 +33,12 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
   useEffect(() => {
     if (!transaction) return;
     setType(transaction.type);
-    setAmount(toCurrencyInput(transaction.amount));
+    setAmount(toInput(transaction.amount));
     setDescription(transaction.description);
     setCategoryId(transaction.categoryId);
     setDate(transaction.date);
     setError(null);
-  }, [transaction]);
+  }, [transaction, toInput]);
 
   const compatible = useMemo(() => categories.filter((c) => isCategoryCompatible(c.type, type)), [categories, type]);
   const effectiveCategory = compatible.some((c) => c.id === categoryId) ? categoryId : (compatible[0]?.id ?? '');
@@ -45,19 +46,19 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (!transaction) return;
-    const value = parseCurrencyInput(amount);
-    if (value <= 0) return setError('Informe um valor maior que zero.');
-    if (!description.trim()) return setError('Informe uma descrição.');
-    if (!effectiveCategory) return setError('Selecione uma categoria.');
-    if (!date) return setError('Informe a data.');
+    const value = parse(amount);
+    if (value <= 0) return setError('Enter an amount greater than zero.');
+    if (!description.trim()) return setError('Enter a description.');
+    if (!effectiveCategory) return setError('Select a category.');
+    if (!date) return setError('Enter a date.');
     setSaving(true);
     try {
       const saved = await onSave(transaction.id, { type, amount: value, description, categoryId: effectiveCategory, date });
       const movedTo = monthKeyOf(saved.date);
       toast.success(
         movedTo !== monthKeyOf(transaction.date)
-          ? `Lançamento atualizado e movido para ${formatMonthLabel(movedTo)}.`
-          : 'Lançamento atualizado.',
+          ? `Transaction updated and moved to ${formatMonthLabel(movedTo)}.`
+          : 'Transaction updated.',
       );
       onClose();
     } catch (err) {
@@ -68,22 +69,22 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
   };
 
   return (
-    <Modal open={transaction !== null} onClose={onClose} title="Editar lançamento" size="md">
+    <Modal open={transaction !== null} onClose={onClose} title="Edit transaction" size="md">
       <form onSubmit={submit} noValidate className="space-y-4">
         <div>
-          <span className="label">Tipo</span>
+          <span className="label">Type</span>
           <TypeToggle value={type} onChange={setType} />
         </div>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="edit-amount" className="label">
-              Valor
+              Amount
             </label>
             <CurrencyInput id="edit-amount" value={amount} onValueChange={setAmount} data-autofocus />
           </div>
           <div>
             <label htmlFor="edit-date" className="label">
-              Data
+              Date
             </label>
             <input
               id="edit-date"
@@ -96,7 +97,7 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
         </div>
         <div>
           <label htmlFor="edit-desc" className="label">
-            Descrição
+            Description
           </label>
           <input
             id="edit-desc"
@@ -109,7 +110,7 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
         </div>
         <div>
           <label htmlFor="edit-cat" className="label">
-            Categoria
+            Category
           </label>
           <CategorySelect id="edit-cat" categories={compatible} value={effectiveCategory} onChange={setCategoryId} />
         </div>
@@ -120,11 +121,11 @@ export function TransactionEditModal({ transaction, categories, onClose, onSave 
         )}
         <div className="flex justify-end gap-2 border-t border-slate-800 pt-4">
           <button type="button" onClick={onClose} className="btn-ghost">
-            Cancelar
+            Cancel
           </button>
           <button type="submit" disabled={saving} className="btn-primary">
             {saving && <Loader2 className="size-4 animate-spin" />}
-            Salvar alterações
+            Save changes
           </button>
         </div>
       </form>

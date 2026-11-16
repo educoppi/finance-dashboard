@@ -4,9 +4,9 @@ import { Loader2, Plus } from 'lucide-react';
 import type { Category, Transaction, TransactionInput, TransactionType } from '../types/finance';
 import { defaultDateForMonth, formatMonthLabel, getLocalTodayISO, monthKeyOf } from '../utils/date';
 import { isCategoryCompatible } from '../utils/finance';
-import { parseCurrencyInput } from '../utils/money';
 import { getErrorMessage } from '../services';
 import { useToast } from '../hooks/useToast';
+import { useCurrency } from '../hooks/useCurrency';
 import { CategorySelect } from './ui/CategorySelect';
 import { CurrencyInput } from './ui/CurrencyInput';
 import { TypeToggle } from './ui/TypeToggle';
@@ -19,10 +19,11 @@ interface QuickAddBarProps {
 
 export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
   const toast = useToast();
+  const { parse, currency } = useCurrency();
   const [type, setType] = useState<TransactionType>('EXPENSE');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  // Última categoria escolhida por tipo, para alternar sem perder a seleção.
+  // Last category picked per type, so toggling keeps the selection.
   const [categoryByType, setCategoryByType] = useState<Record<TransactionType, string>>({ EXPENSE: '', INCOME: '' });
   const [date, setDate] = useState(getLocalTodayISO);
   const [dateTouched, setDateTouched] = useState(false);
@@ -36,20 +37,25 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
     [categories, type],
   );
 
-  // Garante uma categoria válida para o tipo atual (inclusive após edições/exclusões no modal).
+  // Always keep a valid category for the current type (also after edits/deletions in the modal).
   const categoryId = compatible.some((c) => c.id === categoryByType[type])
     ? categoryByType[type]
     : (compatible[0]?.id ?? '');
 
-  // Enquanto o usuário não escolher uma data manualmente, acompanha o mês selecionado.
+  // Until the user picks a date manually, follow the selected month.
   useEffect(() => {
     if (!dateTouched) setDate(defaultDateForMonth(monthKey));
   }, [monthKey, dateTouched]);
 
+  // Switching currency changes the mask (e.g. JPY has no decimals): clear the draft amount.
+  useEffect(() => {
+    setAmount('');
+  }, [currency.code]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (saving) return;
-    const value = parseCurrencyInput(amount);
+    const value = parse(amount);
     const nextErrors = { amount: value <= 0, description: !description.trim(), category: !categoryId };
     setErrors(nextErrors);
     if (nextErrors.amount || nextErrors.description || nextErrors.category) {
@@ -66,30 +72,30 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
       setErrors({});
       const txMonth = monthKeyOf(created.date);
       if (txMonth !== monthKey) {
-        toast.success(`Lançamento salvo em ${formatMonthLabel(txMonth)} (fora do mês exibido).`);
+        toast.success(`Saved to ${formatMonthLabel(txMonth)} (outside the month on screen).`);
       } else {
-        toast.success(type === 'INCOME' ? 'Receita adicionada.' : 'Gasto adicionado.');
+        toast.success(type === 'INCOME' ? 'Income added.' : 'Expense added.');
       }
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
       setSaving(false);
-      // Devolve o foco para lançamentos em sequência.
+      // Return focus for rapid back-to-back entries.
       amountRef.current?.focus();
     }
   };
 
   return (
-    <section aria-label="Lançamento rápido" className="card p-3 sm:p-4">
+    <section aria-label="Quick entry" className="card p-3 sm:p-4">
       <form onSubmit={handleSubmit} noValidate className="grid grid-cols-2 gap-3 md:grid-cols-12 md:items-end">
         <div className="col-span-2 md:col-span-3 lg:col-span-2">
-          <span className="label">Tipo</span>
+          <span className="label">Type</span>
           <TypeToggle value={type} onChange={setType} />
         </div>
 
         <div className="col-span-1 md:col-span-3 lg:col-span-2">
           <label htmlFor="qa-amount" className="label">
-            Valor
+            Amount
           </label>
           <CurrencyInput
             id="qa-amount"
@@ -107,7 +113,7 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
 
         <div className="col-span-1 md:col-span-6 lg:col-span-3">
           <label htmlFor="qa-description" className="label">
-            Descrição
+            Description
           </label>
           <input
             id="qa-description"
@@ -119,7 +125,7 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
               setDescription(e.target.value);
               if (errors.description) setErrors((p) => ({ ...p, description: false }));
             }}
-            placeholder={type === 'INCOME' ? 'Ex: Salário mensal' : 'Ex: Almoço restaurante'}
+            placeholder={type === 'INCOME' ? 'e.g. Monthly salary' : 'e.g. Lunch at a restaurant'}
             aria-invalid={errors.description}
             className={`field ${errors.description ? 'border-rose-500/70 focus:border-rose-500 focus:ring-rose-500/25' : ''}`}
           />
@@ -127,20 +133,20 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
 
         <div className="col-span-1 md:col-span-4 lg:col-span-2">
           <label htmlFor="qa-category" className="label">
-            Categoria
+            Category
           </label>
           <CategorySelect
             id="qa-category"
             categories={compatible}
             value={categoryId}
             onChange={(id) => setCategoryByType((p) => ({ ...p, [type]: id }))}
-            placeholder="Crie uma categoria"
+            placeholder="Create a category"
           />
         </div>
 
         <div className="col-span-1 md:col-span-4 lg:col-span-2">
           <label htmlFor="qa-date" className="label">
-            Data
+            Date
           </label>
           <input
             id="qa-date"
@@ -159,17 +165,17 @@ export function QuickAddBar({ categories, monthKey, onAdd }: QuickAddBarProps) {
         <div className="col-span-2 md:col-span-4 lg:col-span-1">
           <button type="submit" disabled={saving} className="btn-primary w-full">
             {saving ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
-            <span className="lg:hidden xl:inline">Adicionar</span>
+            <span className="lg:hidden xl:inline">Add</span>
           </button>
         </div>
       </form>
       {(errors.amount || errors.description || errors.category) && (
         <p className="mt-2 text-xs text-rose-400" role="alert">
           {errors.amount
-            ? 'Informe um valor maior que zero.'
+            ? 'Enter an amount greater than zero.'
             : errors.description
-              ? 'Informe uma descrição.'
-              : 'Selecione uma categoria compatível.'}
+              ? 'Enter a description.'
+              : 'Select a matching category.'}
         </p>
       )}
     </section>

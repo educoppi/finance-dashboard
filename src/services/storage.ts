@@ -1,7 +1,7 @@
 /**
- * Adaptador de persistência local. É o ÚNICO ponto do app que toca o
- * `localStorage`. Na Fase 2 este arquivo deixa de ser usado e os services
- * passam a usar `httpClient` (fetch/axios) contra a API Spring Boot.
+ * Local persistence adapter. This is the ONLY module in the app that touches
+ * `localStorage`. In Phase 2 it goes away and the services call the
+ * Spring Boot API through an HTTP client (fetch/axios) instead.
  */
 
 const PREFIX = 'fluxo:v1:';
@@ -11,26 +11,39 @@ export const STORAGE_KEYS = {
   transactions: 'transactions',
   goals: 'goals',
   defaultGoals: 'defaultGoals',
+  settings: 'settings',
 } as const;
 
 type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
-export function readCollection<T>(key: StorageKey): T[] | null {
+function readJSON(key: StorageKey): unknown {
   try {
     const raw = localStorage.getItem(PREFIX + key);
-    if (raw === null) return null;
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as T[]) : null;
+    return raw === null ? null : (JSON.parse(raw) as unknown);
   } catch {
     return null;
   }
+}
+
+export function readCollection<T>(key: StorageKey): T[] | null {
+  const parsed = readJSON(key);
+  return Array.isArray(parsed) ? (parsed as T[]) : null;
 }
 
 export function writeCollection<T>(key: StorageKey, items: T[]): void {
   localStorage.setItem(PREFIX + key, JSON.stringify(items));
 }
 
-/** Gera UUID v4 (equivalente ao UUID gerado pelo backend na Fase 2). */
+export function readRecord<T extends object>(key: StorageKey): T | null {
+  const parsed = readJSON(key);
+  return parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed) ? (parsed as T) : null;
+}
+
+export function writeRecord<T extends object>(key: StorageKey, value: T): void {
+  localStorage.setItem(PREFIX + key, JSON.stringify(value));
+}
+
+/** Generates a v4 UUID (equivalent to the backend-generated UUID in Phase 2). */
 export function generateId(): string {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
@@ -41,7 +54,7 @@ export function generateId(): string {
   });
 }
 
-/** Simula a natureza assíncrona de uma chamada HTTP. */
+/** Mimics the asynchronous nature of an HTTP call. */
 export function resolveAsync<T>(fn: () => T): Promise<T> {
   return new Promise((resolve, reject) => {
     queueMicrotask(() => {
