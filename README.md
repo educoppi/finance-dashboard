@@ -48,7 +48,7 @@ The interface is in **English** and supports **10 currencies** (USD, BRL, EUR, G
 
 ### Category management
 - Ships with 8 default categories (6 expense, 2 income), each with its own color.
-- Create and edit categories: name, type (`EXPENSE`, `INCOME`, `BOTH`) and color (quick palette, native color picker or hex input).
+- Create and edit categories: name, type (`EXPENSE` or `INCOME`) and color (quick palette, native color picker or hex input).
 - **Referential integrity:** renaming or recoloring a category updates the history and charts immediately. A category that is still used by transactions **cannot be deleted**, and the app shows a clear warning.
 
 ### History and filters
@@ -199,7 +199,7 @@ interface Category {
   id: string;                          // UUID
   name: string;
   color: string;                       // Hex, e.g. "#10b981"
-  type: 'EXPENSE' | 'INCOME' | 'BOTH';
+  type: 'EXPENSE' | 'INCOME';
 }
 
 interface Transaction {

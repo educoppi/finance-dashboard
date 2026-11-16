@@ -10,7 +10,7 @@ export function filterByMonth(transactions: Transaction[], monthKey: string): Tr
 }
 
 export function isCategoryCompatible(categoryType: CategoryType, txType: TransactionType): boolean {
-  return categoryType === 'BOTH' || categoryType === txType;
+  return categoryType === txType;
 }
 
 /**

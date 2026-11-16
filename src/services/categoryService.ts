@@ -1,4 +1,4 @@
-import type { Category, CategoryInput } from '../types/finance';
+import type { Category, CategoryInput, Transaction } from '../types/finance';
 import { IntegrityError, NotFoundError, ValidationError } from './errors';
 import { STORAGE_KEYS, generateId, readCollection, resolveAsync, writeCollection } from './storage';
 import { transactionService } from './transactionService';
@@ -18,9 +18,27 @@ const DEFAULT_CATEGORIES: CategoryInput[] = [
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 
+/**
+ * Migration: the legacy "BOTH" category type no longer exists. A former BOTH
+ * category becomes INCOME if only income transactions use it, otherwise EXPENSE.
+ */
+function migrateLegacyBoth(stored: Category[]): Category[] {
+  const legacy = stored.filter((c) => (c.type as string) === 'BOTH');
+  if (legacy.length === 0) return stored;
+  const txs = readCollection<Pick<Transaction, 'categoryId' | 'type'>>(STORAGE_KEYS.transactions) ?? [];
+  const migrated = stored.map((c) => {
+    if ((c.type as string) !== 'BOTH') return c;
+    const linked = txs.filter((t) => t.categoryId === c.id);
+    const onlyIncome = linked.length > 0 && linked.every((t) => t.type === 'INCOME');
+    return { ...c, type: onlyIncome ? 'INCOME' : 'EXPENSE' } satisfies Category;
+  });
+  writeCollection(STORAGE_KEYS.categories, migrated);
+  return migrated;
+}
+
 function load(): Category[] {
   const stored = readCollection<Category>(STORAGE_KEYS.categories);
-  if (stored !== null) return stored;
+  if (stored !== null) return migrateLegacyBoth(stored);
   // Seed on first access (equivalent to a Flyway migration with initial data).
   const seeded = DEFAULT_CATEGORIES.map((c) => ({ ...c, id: generateId() }));
   writeCollection(STORAGE_KEYS.categories, seeded);
@@ -63,7 +81,7 @@ export const categoryService = {
     const data = validate(input, all, id);
 
     // Integrity: do not allow a type change that would leave transactions incompatible.
-    if (data.type !== 'BOTH' && data.type !== current.type) {
+    if (data.type !== current.type) {
       const linked = await transactionService.countByCategory(id);
       const incompatible = linked.byType[data.type === 'EXPENSE' ? 'INCOME' : 'EXPENSE'];
       if (incompatible > 0) {

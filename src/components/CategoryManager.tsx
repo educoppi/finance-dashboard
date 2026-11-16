@@ -25,13 +25,11 @@ const PALETTE = [
 const TYPE_OPTIONS: { value: CategoryType; label: string }[] = [
   { value: 'EXPENSE', label: 'Expense' },
   { value: 'INCOME', label: 'Income' },
-  { value: 'BOTH', label: 'Both' },
 ];
 
 const TYPE_CHIP: Record<CategoryType, string> = {
   EXPENSE: 'bg-rose-500/10 text-rose-300 ring-rose-500/25',
   INCOME: 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/25',
-  BOTH: 'bg-indigo-500/10 text-indigo-300 ring-indigo-500/25',
 };
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -127,7 +125,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
   };
 
   const grouped = useMemo(() => {
-    const order: CategoryType[] = ['EXPENSE', 'INCOME', 'BOTH'];
+    const order: CategoryType[] = ['EXPENSE', 'INCOME'];
     return order
       .map((type) => ({
         type,
@@ -138,7 +136,7 @@ export function CategoryManager({ open, onClose, categories, usage, onCreate, on
       .filter((g) => g.items.length > 0);
   }, [categories]);
 
-  const groupTitle: Record<CategoryType, string> = { EXPENSE: 'Expenses', INCOME: 'Income', BOTH: 'Expenses & income' };
+  const groupTitle: Record<CategoryType, string> = { EXPENSE: 'Expenses', INCOME: 'Income' };
 
   return (
     <Modal

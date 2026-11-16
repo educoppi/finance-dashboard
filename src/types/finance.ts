@@ -9,7 +9,7 @@
 
 export type TransactionType = 'EXPENSE' | 'INCOME';
 
-export type CategoryType = TransactionType | 'BOTH';
+export type CategoryType = TransactionType;
 
 export interface Category {
   id: string; // UUID
