@@ -1,21 +1,21 @@
 import { useCallback, useMemo, useState } from 'react';
-import type { Transaction, TransactionInput } from './types/finance';
-import { useFinanceData } from './hooks/useFinanceData';
-import { useToast } from './hooks/useToast';
-import { getErrorMessage } from './services';
-import { getCurrentMonthKey, formatDate } from './utils/date';
-import { computeMonthSummary, cumulativeExpenses, expensesByCategory } from './utils/finance';
-import { useCurrency } from './hooks/useCurrency';
-import { Header } from './components/Header';
-import { QuickAddBar } from './components/QuickAddBar';
-import { SummaryCards } from './components/SummaryCards';
-import { CategoryDonut } from './components/charts/CategoryDonut';
-import { SpendingPaceChart } from './components/charts/SpendingPaceChart';
-import { MonthlyBalanceChart } from './components/charts/MonthlyBalanceChart';
-import { TransactionHistory } from './components/TransactionHistory';
-import { TransactionEditModal } from './components/TransactionEditModal';
-import { CategoryManager } from './components/CategoryManager';
-import { ConfirmDialog } from './components/ui/ConfirmDialog';
+import type { Transaction, TransactionInput } from './modules/finance/types/finance';
+import { useFinanceData } from './modules/finance/hooks/useFinanceData';
+import { useToast } from './shared/hooks/useToast';
+import { getErrorMessage } from './modules/finance/services';
+import { getCurrentMonthKey, formatDate } from './shared/utils/date';
+import { computeMonthSummary, cumulativeExpenses, expensesByCategory } from './modules/finance/utils/finance';
+import { useCurrency } from './shared/hooks/useCurrency';
+import { Header } from './modules/finance/components/Header';
+import { QuickAddBar } from './modules/finance/components/QuickAddBar';
+import { SummaryCards } from './modules/finance/components/SummaryCards';
+import { CategoryDonut } from './modules/finance/components/charts/CategoryDonut';
+import { SpendingPaceChart } from './modules/finance/components/charts/SpendingPaceChart';
+import { MonthlyBalanceChart } from './modules/finance/components/charts/MonthlyBalanceChart';
+import { TransactionHistory } from './modules/finance/components/TransactionHistory';
+import { TransactionEditModal } from './modules/finance/components/TransactionEditModal';
+import { CategoryManager } from './modules/finance/components/CategoryManager';
+import { ConfirmDialog } from './shared/components/ConfirmDialog';
 
 export default function App() {
   const toast = useToast();
@@ -64,7 +64,12 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_80%_40%_at_50%_-10%,rgb(99_102_241/0.12),transparent)]">
-      <Header monthKey={monthKey} onMonthChange={setMonthKey} onOpenCategories={() => setCategoriesOpen(true)} />
+      <Header
+        monthKey={monthKey}
+        onMonthChange={setMonthKey}
+        onOpenCategories={() => setCategoriesOpen(true)}
+        onDataImported={data.reload}
+      />
 
       <main className="mx-auto max-w-7xl space-y-4 px-4 py-5 sm:space-y-5 sm:px-6 sm:py-6 lg:px-8">
         <QuickAddBar categories={categories} monthKey={monthKey} onAdd={handleAdd} />
